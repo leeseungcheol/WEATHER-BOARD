@@ -1,3 +1,3 @@
-This is a project for the ODROID-SHOW
+This is a project for the WEATHER-BOARD
 
-ODROID-SHOW Wiki : odroid.com/dokuwiki/doku.php?id=en:odroidshow
+WEATHER-BOARD Wiki : odroid.com/dokuwiki/doku.php?id=en:weather-board
