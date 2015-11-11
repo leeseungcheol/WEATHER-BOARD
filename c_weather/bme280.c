@@ -92,6 +92,9 @@ BME280_RETURN_FUNCTION_TYPE bme280_init(struct bme280_t *bme280)
 	BME280_GEN_READ_WRITE_DATA_LENGTH);
 	/* read Chip Id */
 	p_bme280->chip_id = v_data_u8;
+	if (p_bme280->chip_id != 0x60) {
+		return -1;
+	}
 
 	com_rslt += bme280_get_calib_param();
 	/* readout bme280 calibparam structure */

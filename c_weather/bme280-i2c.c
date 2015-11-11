@@ -8,26 +8,28 @@
 s32 bme280_begin(const char *device)
 {
 	int status = 0;
-	s32 com_rslt = ERROR;
+	s32 com_rslt = 0;
 
 	bme280Fd = open(device, O_RDWR);
 	if (bme280Fd < 0) {
-		printf("ERROR:bme280 open failed\n");
+		printf("ERROR: bme280 open failed\n");
 		return -1;
 	}
 	status = ioctl(bme280Fd, I2C_SLAVE, BME280_I2C_ADDRESS1);
 	if (status < 0) {
-		printf("ERROR:bme280 ioctl error\n");
+		printf("ERROR: bme280 ioctl error\n");
 		close(bme280Fd);
 		return -1;
 	}
 
 	I2C_routine();
 
-	com_rslt = bme280_init(&bme280);
+	if (bme280_init(&bme280) < 0) {
+		return -1;
+	}
+
 	com_rslt += bme280_set_power_mode(BME280_NORMAL_MODE);
 	com_rslt += bme280_set_oversamp_humidity(BME280_OVERSAMP_2X);
-
 	com_rslt += bme280_set_oversamp_pressure(BME280_OVERSAMP_2X);
 	com_rslt += bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
 	usleep(100000);
@@ -35,7 +37,7 @@ s32 bme280_begin(const char *device)
 	return com_rslt;
 }
 
-float readAltitude(int pressure, float seaLevel)
+float bme280_readAltitude(int pressure, float seaLevel)
 {
 	float atmospheric = (float)pressure/100.0;
 	return 44330.0 * (1.0 - pow(atmospheric/seaLevel, 0.1903));
@@ -70,7 +72,7 @@ s8 BME280_I2C_bus_read(u8 dev_addr, u8 reg_addr, u8 *reg_data, u8 cnt)
 	return (s8)iError;
 }
 
-void BME280_delay_msek(u32 msek)
+void BME280_delay_msek(u16 msek)
 {
 	usleep(msek*1000);
 }

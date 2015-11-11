@@ -80,12 +80,12 @@ int si1132_begin(const char *device);
 void initialize(void);
 void reset();
 
-float readVisible();
-float readIR();
-float readUV();
+float Si1132_readVisible();
+float Si1132_readIR();
+float Si1132_readUV();
 
-unsigned char read8(unsigned char reg);
-unsigned short read16(unsigned char reg);
+unsigned char Si1132_I2C_read8(unsigned char reg);
+unsigned short Si1132_I2C_read16(unsigned char reg);
 
-void write8(unsigned char reg, unsigned char val);
-void writeParam(unsigned char param, unsigned char val);
+void Si1132_I2C_write8(unsigned char reg, unsigned char val);
+void Si1132_I2C_writeParam(unsigned char param, unsigned char val);
