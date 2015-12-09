@@ -63,7 +63,7 @@ unsigned char errorState;
 
 void setup()
 {
-        Serial.begin(500000);
+        Serial.begin(115200);
         Serial.println("Welcome to the WEATHER-BOARD");
 
         // initialize the sensors
@@ -256,18 +256,17 @@ void sendToHost()
 		Serial.print("\ew6");
 		Serial.print(Si7020Humidity);
 		Serial.print("\ew7");
-		Serial.print(BMP180Temperature);
-		Serial.print("\ew8");
 		Serial.print(BMP180Pressure);
-		Serial.print("\ew9");
+		Serial.print("\ew8");
 		Serial.print(BMP180Altitude);
 	} else {
 		Serial.print(BME280Temperature);
 		Serial.print("\ew6");
-		Serial.print(BME280Pressure);
+		Serial.print(BME280Humidity);
 		Serial.print("\ew7");
-		Serial.print(BME280Altitude);
+		Serial.print(BME280Pressure);
 		Serial.print("\ew8");
+		Serial.print(BME280Altitude);
 	}
 
 	Serial.print("\e");

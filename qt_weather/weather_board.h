@@ -7,6 +7,7 @@
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <termios.h>
+#include <QtGui/QPushButton>
 
 #define BUFF_SIZE 32
 
@@ -21,7 +22,6 @@ class WeatherBoard : public QMainWindow
 public:
 	explicit WeatherBoard(QWidget *parent = 0);
 	~WeatherBoard();
-    //void paintEvent(QPaintEvent *);
 
 private:
 	Ui::WeatherBoard *ui;
@@ -29,8 +29,10 @@ private:
 
     struct termios newtio;
     int fd;
-	char buf[BUFF_SIZE];
+    char buf[BUFF_SIZE];
     char readBuf[BUFF_SIZE];
+
+    QString device = "/dev/ttyUSB0";
 
     double xTempData[100];
     double yTempData[100];
@@ -93,6 +95,8 @@ private:
 
 private slots:
 	void updateData();
+	void on_m_button_clicked();
+	void on_m_exitButton_clicked();
 };
 
 #endif // WEATHERBOARD_H

@@ -2,11 +2,11 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <QFileInfo>
 #include "weather_board.h"
 #include "ui_weather_board.h"
 
-#define DEVICE "/dev/ttyUSB0"
-#define baudrate B500000
+#define baudrate B115200
 
 WeatherBoard::WeatherBoard(QWidget *parent) :
 	QMainWindow(parent),
@@ -37,9 +37,8 @@ WeatherBoard::WeatherBoard(QWidget *parent) :
     palette->setColor(QPalette::WindowText,Qt::green);
     ui->lIR_2->setPalette(*palette);
 
-
-
     setSerial();
+
     TempCurve = new QwtPlotCurve("Temperature");
     HumidityCurve = new QwtPlotCurve("Humidity");
     AltitudeCurve = new QwtPlotCurve("Altitude");
@@ -47,6 +46,7 @@ WeatherBoard::WeatherBoard(QWidget *parent) :
     UVIndexCurve = new QwtPlotCurve("UVIndex");
     VisibleCurve = new QwtPlotCurve("Visible");
     IRCurve = new QwtPlotCurve("IR");
+
     tempIndex = 0;
     humidityIndex = 0;
     altitudeIndex = 0;
@@ -70,11 +70,15 @@ WeatherBoard::~WeatherBoard()
     ::close(fd);
 }
 
+int state = 0;
+int i = 0;
+int sensornum = 0;
+
 void WeatherBoard::setSerial()
 {
     fd = -1;
 
-    fd = open(DEVICE, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    fd = open(device.toStdString().c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
     memset(&newtio, 0, sizeof(newtio));
 
     if (fd < 0)
@@ -104,7 +108,6 @@ void WeatherBoard::displayTempHumiPlot()
 {
     ui->qwtPlotTempHumi->setAxisScale(QwtPlot::yLeft, 0, 100);
     ui->qwtPlotTempHumi->setAxisScale(QwtPlot::xBottom, 0, 100);
-    ui->qwtPlotTempHumi->setTitle("Temperature & Humidity");
     ui->qwtPlotTempHumi->setAxisTitle(QwtPlot::xBottom, "sec");
     ui->qwtPlotTempHumi->setCanvasBackground(QBrush(QColor(0, 0, 0)));
 
@@ -115,9 +118,8 @@ void WeatherBoard::displayTempHumiPlot()
 }
 void WeatherBoard::displayAltitudePlot()
 {
-    ui->qwtPlotAltitude->setAxisScale(QwtPlot::yLeft, 0, 1000);
+    ui->qwtPlotAltitude->setAxisScale(QwtPlot::yLeft, 0, 500);
     ui->qwtPlotAltitude->setAxisScale(QwtPlot::xBottom, 0, 100);
-    ui->qwtPlotAltitude->setTitle("Altitude");
     ui->qwtPlotAltitude->setAxisTitle(QwtPlot::xBottom, "sec");
     ui->qwtPlotAltitude->setCanvasBackground(QBrush(QColor(0, 0, 0)));
 
@@ -127,9 +129,8 @@ void WeatherBoard::displayAltitudePlot()
 
 void WeatherBoard::displayPressurePlot()
 {
-    ui->qwtPlotPressure->setAxisScale(QwtPlot::yLeft, 0, 150000);
+    ui->qwtPlotPressure->setAxisScale(QwtPlot::yLeft, 900, 1100);
     ui->qwtPlotPressure->setAxisScale(QwtPlot::xBottom, 0, 100);
-    ui->qwtPlotPressure->setTitle("Pressure");
     ui->qwtPlotPressure->setAxisTitle(QwtPlot::xBottom, "sec");
     ui->qwtPlotPressure->setCanvasBackground(QBrush(QColor(0, 0, 0)));
 
@@ -141,77 +142,73 @@ void WeatherBoard::displayUVAmbientPlot()
 {
     ui->qwtPlotUVAmbient->setAxisScale(QwtPlot::yLeft, 0, 1000);
     ui->qwtPlotUVAmbient->setAxisScale(QwtPlot::xBottom, 0, 100);
-    ui->qwtPlotUVAmbient->setTitle("UV Index & Visible & IR");
     ui->qwtPlotUVAmbient->setAxisTitle(QwtPlot::xBottom, "sec");
     ui->qwtPlotUVAmbient->setCanvasBackground(QBrush(QColor(0, 0, 0)));
 
     UVIndexCurve->attach(ui->qwtPlotUVAmbient);
     UVIndexCurve->setPen(QColor(255, 0, 0));
     VisibleCurve->attach(ui->qwtPlotUVAmbient);
-    VisibleCurve->setPen(QColor(0, 255, 0));
+    VisibleCurve->setPen(QColor(100, 100, 255));
     IRCurve->attach(ui->qwtPlotUVAmbient);
-    IRCurve->setPen(QColor(100, 100, 255));
+    IRCurve->setPen(QColor(0, 255, 0));
 }
 
 void WeatherBoard::updateData()
 {
-    memset(buf, 0x00, BUFF_SIZE);
     read(fd, readBuf, 1);
+    buf[i] = readBuf[0];
 
     if (readBuf[0] == 'w') {
-        int i = 0;
-        while (readBuf[0] != '\e') {
-            read(fd, readBuf, 1);
-            buf[i] = readBuf[0];
-            i++;
-            if (i > 8)
+        state = 1;
+    } else if (state == 1) {
+        sensornum = readBuf[0];
+        state = 2;
+        i = 0;
+    } else if (state == 2) {
+        i++;
+        if (readBuf[0] == '\e') {
+            state = 0;
+            buf[i-1] = '\0';
+            i = 0;
+            switch (sensornum) {
+            case '2':
+                ui->lcdNum_UV->display(buf);
+                uvIndex = ::atof(buf);
+                drawUVIndexCurve();
                 break;
+            case '3':
+                ui->lcdNum_Visible->display(buf);
+                visible = ::atof(buf);
+                drawVisibleCurve();
+                break;
+            case '4':
+                ui->lcdNum_IR->display(buf);
+                ir = ::atof(buf);
+                drawIRCurve();
+                break;
+            case '5':
+                ui->lcdNum_Temp->display(buf);
+                temperature = ::atof(buf);
+                drawTempCurve();
+                break;
+            case '6':
+                ui->lcdNum_Humidity->display(buf);
+                humidity = ::atof(buf);
+                drawHumidityCurve();
+                break;
+            case '7':
+                ui->lcdNum_Pressure->display(buf);
+                pressure = ::atof(buf);
+                drawPressureCurve();
+                break;
+            case '8':
+                ui->lcdNum_Altitude->display(buf);
+                altitude = ::atof(buf);
+                drawAltitudeCurve();
+                break;
+            }
         }
-        buf[i-1] = '\0';
-        switch (buf[0]) {
-        case '0':
-            //ui->lcdNum_Temp->display(&buf[1]);
-            //temperature = ::atof(&buf[1]);
-            //drawTempCurve();
-            break;
-        case '1':
-            ui->lcdNum_Pressure->display(&buf[1]);
-            pressure = ::atoi(&buf[1]);
-            drawPressureCurve();
-            break;
-        case '2':
-            ui->lcdNum_Altitude->display(&buf[1]);
-            altitude = ::atof(&buf[1]);
-            drawAltitudeCurve();
-            break;
-        case '3':
-            ui->lcdNum_Temp->display(&buf[1]);
-            temperature = ::atof(&buf[1]);
-            drawTempCurve();
-            break;
-        case '4':
-            ui->lcdNum_Humidity->display(&buf[1]);
-            humidity = ::atof(&buf[1]);
-            drawHumidityCurve();
-            break;
-        case '5':
-            ui->lcdNum_UV->display(&buf[1]);
-            uvIndex = ::atof(&buf[1]);
-            drawUVIndexCurve();
-            break;
-        case '6':
-            ui->lcdNum_Visible->display(&buf[1]);
-            visible = ::atoi(&buf[1]);
-            drawVisibleCurve();
-            break;
-        case '7':
-            ui->lcdNum_IR->display(&buf[1]);
-            ir = ::atoi(&buf[1]);
-            drawIRCurve();
-            break;
-        }
-
-      }
+    }
 }
 
 void WeatherBoard::drawTempCurve()
@@ -254,7 +251,7 @@ void WeatherBoard::drawHumidityCurve()
 
 void WeatherBoard::drawAltitudeCurve()
 {
-    if (altitude > 0 && altitude < 1000) {
+    if (altitude > 0 && altitude < 500) {
         if (altitudeIndex < 99) {
             yAltitudeData[altitudeIndex] = altitude;
             xAltitudeData[altitudeIndex] = altitudeIndex;
@@ -273,7 +270,7 @@ void WeatherBoard::drawAltitudeCurve()
 
 void WeatherBoard::drawPressureCurve()
 {
-    if (pressure > 0 && pressure < 150000) {
+    if (pressure > 900 && pressure < 1100) {
         if (pressureIndex < 99) {
             yPressureData[pressureIndex] = pressure;
             xPressureData[pressureIndex] = pressureIndex;
@@ -345,4 +342,25 @@ void WeatherBoard::drawIRCurve()
 
     IRCurve->setSamples(xIRData, yIRData, irIndex);
     ui->qwtPlotUVAmbient->replot();
+}
+
+void WeatherBoard::on_m_button_clicked()
+{
+    ::close(fd);
+    device = "/dev/ttyUSB0";
+    if (!QFileInfo(device).exists()) {
+        device = "/dev/ttyUSB1";
+    }
+    setSerial();
+    state = 0;
+    i = 0;
+    sensornum = 0;
+    notRsRead = new QSocketNotifier(fd, QSocketNotifier::Read, this);
+    connect(notRsRead, SIGNAL(activated(int)), this, SLOT(updateData()));
+}
+
+void WeatherBoard::on_m_exitButton_clicked()
+{
+    ::close(fd);
+    qApp->quit();
 }
