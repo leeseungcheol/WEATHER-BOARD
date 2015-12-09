@@ -18,7 +18,7 @@
 #define _dc 9
 #define _rst 8
 
-const char version[] = "v1.4";
+const char version[] = "v1.5";
 
 uint8_t ledPin = 5;
 uint8_t pwm = 255;
