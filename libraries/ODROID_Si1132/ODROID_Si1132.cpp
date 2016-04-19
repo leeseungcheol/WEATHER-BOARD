@@ -12,28 +12,27 @@ boolean ODROID_Si1132::begin(void)
 	reset();
 
 	// enable UVindex measurement coefficients!
-	write8(Si1132_REG_UCOEF0, 0x29);
-	write8(Si1132_REG_UCOEF1, 0x89);
-	write8(Si1132_REG_UCOEF2, 0x02);
+	write8(Si1132_REG_UCOEF0, 0x7B);
+	write8(Si1132_REG_UCOEF1, 0x6B);
+	write8(Si1132_REG_UCOEF2, 0x01);
 	write8(Si1132_REG_UCOEF3, 0x00);
 
 	// enable UV sensor
 	writeParam(Si1132_PARAM_CHLIST, Si1132_PARAM_CHLIST_ENUV |
-			Si1132_PARAM_CHLIST_ENAUX | Si1132_PARAM_CHLIST_ENALSIR |
-				Si1132_PARAM_CHLIST_ENALSVIS);
+		Si1132_PARAM_CHLIST_ENALSIR | Si1132_PARAM_CHLIST_ENALSVIS);
 	write8(Si1132_REG_INTCFG, Si1132_REG_INTCFG_INTOE);
 	write8(Si1132_REG_IRQEN, Si1132_REG_IRQEN_ALSEVERYSAMPLE);
 
   	writeParam(Si1132_PARAM_ALSIRADCMUX, Si1132_PARAM_ADCMUX_SMALLIR);  
   // fastest clocks, clock div 1
-	writeParam(Si1132_PARAM_ALSIRADCGAIN, 2);
+	writeParam(Si1132_PARAM_ALSIRADCGAIN, 0);
   // take 511 clocks to measure
   	writeParam(Si1132_PARAM_ALSIRADCCOUNTER, Si1132_PARAM_ADCCOUNTER_511CLK);
   // in high range mode
 	writeParam(Si1132_PARAM_ALSIRADCMISC, Si1132_PARAM_ALSIRADCMISC_RANGE);
 
   // fastest clocks
-	writeParam(Si1132_PARAM_ALSVISADCGAIN, 3);
+	writeParam(Si1132_PARAM_ALSVISADCGAIN, 0);
   // take 511 clocks to measure
   	writeParam(Si1132_PARAM_ALSVISADCCOUNTER, Si1132_PARAM_ADCCOUNTER_511CLK);
   // in high range mode (not normal signal)
@@ -54,13 +53,13 @@ uint16_t ODROID_Si1132::readUV()
 float ODROID_Si1132::readIR()
 {
 	delay(10);
-	return read16(0x24) - 250;
+	return ((read16(0x24) - 250)/2.44)*14.5;
 }
 
 float ODROID_Si1132::readVisible()
 {
 	delay(10);
-	return read16(0x22) - 250;
+	return ((read16(0x22) - 256)/0.282)*14.5;
 }
 
 void ODROID_Si1132::reset()
